@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Me Like Cats</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body, html {
+            height: 100%;
+            width: 100%;
+            overflow: hidden;
+            background-color: #000;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .wrapper {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            cursor: pointer;
+        }
+
+        .cat-image {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            object-fit: cover;
+            transition: opacity 1.5s ease-in-out;
+            opacity: 0;
+        }
+
+        .cat-image.active {
+            opacity: 1;
+        }
+
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(to bottom, rgba(0,0,0,0.4), rgba(0,0,0,0.2), rgba(0,0,0,0.5));
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 40px 20px;
+            pointer-events: none;
+            z-index: 10;
+            transition: opacity 1s ease, visibility 1s ease;
+        }
+
+        .overlay.hidden {
+            opacity: 0;
+            visibility: hidden;
+        }
+
+        h1 {
+            color: #ffffff;
+            font-size: 3rem;
+            font-weight: 300;
+            text-align: center;
+            text-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
+            letter-spacing: 1px;
+            animation: fadeInDown 1.5s ease;
+        }
+
+        .hint {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 1rem;
+            margin-top: 20px;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+            animation: pulse 2s infinite;
+        }
+
+        /* Controls Container in the Bottom Corner */
+        .controls-container {
+            position: absolute;
+            bottom: 25px;
+            right: 25px;
+            display: flex;
+            gap: 12px;
+            z-index: 100; /* Stays above all overlays and images */
+        }
+
+        .btn {
+            background-color: rgba(0, 0, 0, 0.5);
+            color: rgba(255, 255, 255, 0.85);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            padding: 8px 16px;
+            font-size: 0.9rem;
+            border-radius: 20px;
+            cursor: pointer;
+            backdrop-filter: blur(4px); /* Sleek translucent glass effect */
+            transition: all 0.2s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+            color: #ffffff;
+            border-color: rgba(255, 255, 255, 0.6);
+            transform: scale(1.05);
+        }
+
+        .btn:active {
+            transform: scale(0.98);
+        }
+        
+        @keyframes fadeInDown {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="wrapper" id="main-wrapper">
+        <img id="cat-layer-1" src="https://cataas.com/cat" class="cat-image active" alt="Random Cat">
+        <img id="cat-layer-2" class="cat-image" alt="Random Cat">
+        
+        <div id="intro-overlay" class="overlay">
+            <h1>Just Relax and enjoy some cats</h1>
+            <div class="hint">Click anywhere to begin your relaxation</div>
+        </div>
+        <!-- UI Interactive Corner Action Buttons -->
+        <div class="controls-container">
+            <!-- Mute Button Toggle -->
+            <button id="mute-btn" class="btn" onclick="toggleMute(event)">Mute</button>
+            <!-- Why Page External Link Anchor Target -->
+            <a href="why.html" class="btn" onclick="handleWhyClick(event)">Why</a>
+        </div>
+    </div>
+
+    <audio id="bg-music"></audio>
+
+    <script>
+        const wrapper = document.getElementById('main-wrapper');
+        const overlay = document.getElementById('intro-overlay');
+        const music = document.getElementById('bg-music');
+        
+        const layers = [
+            document.getElementById('cat-layer-1'),
+            document.getElementById('cat-layer-2')
+        ];
+        
+        let currentLayerIndex = 0;
+        let slideshowTimer = null;
+        let isFirstClick = true;
+
+        const playlist = [
+            "https://dn710204.ca.archive.org/0/items/08-minecraft_202302/03%20-%20Subwoofer%20Lullaby.mp3",
+            "https://dn601304.us.archive.org/0/items/08-minecraft_202302/05%20-%20Living%20Mice.mp3",
+            "https://dn710204.ca.archive.org/0/items/08-minecraft_202302/06%20-%20Moog%20City.mp3",
+            "https://dn710204.ca.archive.org/0/items/08-minecraft_202302/07%20-%20Haggstrom.mp3",
+            "https://dn601304.us.archive.org/0/items/08-minecraft_202302/08%20-%20Minecraft.mp3",
+            "https://dn710204.ca.archive.org/0/items/08-minecraft_202302/11%20-%20Mice%20on%20Venus.mp3",
+            "https://dn710204.ca.archive.org/0/items/08-minecraft_202302/12%20-%20Dry%20Hands.mp3",
+            "https://dn710204.ca.archive.org/0/items/08-minecraft_202302/13%20-%20Wet%20Hands.mp3",
+            "https://dn710204.ca.archive.org/0/items/08-minecraft_202302/18%20-%20Sweden.mp3"
+        ];
+
+        function playRandomTrack() {
+            const randomIndex = Math.floor(Math.random() * playlist.length);
+            music.src = playlist[randomIndex];
+            music.volume = 0.1;
+            music.play().catch(err => console.log("Playback error or navigation block:", err));
+        }
+
+        music.addEventListener('ended', () => {
+            playRandomTrack();
+        });
+
+        function toggleMute(event) {
+            event.stopPropagation(); // Prevents clicking Mute from advancing the cat slideshow
+            
+            if (music.muted) {
+                music.muted = false;
+                muteBtn.textContent = "Mute";
+                muteBtn.style.backgroundColor = "rgba(0, 0, 0, 0.5)";
+            } else {
+                music.muted = true;
+                muteBtn.textContent = "Unmute";
+                muteBtn.style.backgroundColor = "rgba(224, 86, 86, 0.4)"; // Subtle red tone when muted
+            }
+        }
+
+        // Handles the navigation click event safely
+        function handleWhyClick(event) {
+            event.stopPropagation(); // Prevents clicking 'Why' from changing the current cat image
+        }
+
+        function fetchNextCat() {
+            const nextLayerIndex = (currentLayerIndex + 1) % 2;
+            const activeLayer = layers[currentLayerIndex];
+            const nextLayer = layers[nextLayerIndex];
+
+            nextLayer.src = "https://cataas.com/cat?t=" + Date.now();
+            
+            nextLayer.onload = () => {
+                nextLayer.classList.add('active');
+                activeLayer.classList.remove('active');
+                currentLayerIndex = nextLayerIndex;
+            };
+        }
+
+        function resetSlideshowInterval() {
+            clearInterval(slideshowTimer);
+            slideshowTimer = setInterval(fetchNextCat, 7000);
+        }
+
+        // Handle structural tap adjustments
+        wrapper.addEventListener('click', () => {
+            if (isFirstClick) {
+                overlay.classList.add('hidden');
+
+                playRandomTrack();
+
+                fetchNextCat();
+                resetSlideshowInterval();
+                isFirstClick = false;
+            } else {
+                fetchNextCat();
+                resetSlideshowInterval();
+            }
+        });
+    </script>
+</body>
+</html>
